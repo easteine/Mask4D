@@ -5,10 +5,10 @@ import yaml
 from mask_4d.utils.eval_np import Panoptic4DEval
 
 
-class PanopticKitti4DEvaluator:
+class Panoptic4DEvaluator:
     def __init__(self, cfg):
         dataset_config_file = cfg.CONFIG
-        self.load_kitti_config(dataset_config_file)
+        self.load_config(dataset_config_file)
         min_points = 50
         self.evaluator = Panoptic4DEval(
             self.nr_classes,
@@ -25,9 +25,8 @@ class PanopticKitti4DEvaluator:
         self.class_metrics = {}
         self.mean_metrics = {}
 
-    def load_kitti_config(self, config_file):
+    def load_config(self, config_file):
         # Load semantic-kitti config
-        # data = yaml.safe_load(open('datasets/semantic-kitti.yaml', 'r'))
         data = yaml.safe_load(open(config_file, "r"))
         # get number of interest classes, and the label mappings
         class_remap = data["learning_map"]
@@ -42,13 +41,14 @@ class PanopticKitti4DEvaluator:
         class_lut[list(class_remap.keys())] = list(class_remap.values())
         self.ignore_class = [cl for cl, ignored in class_ignore.items() if ignored]
 
-        self.class_inv_lut = np.zeros((20), dtype=np.int32)
+        maxinvkey = max(self.class_inv_remap.keys()) + 1
+        self.class_inv_lut = np.zeros((maxinvkey), dtype=np.int32)
         self.class_inv_lut[list(self.class_inv_remap.keys())] = list(
             self.class_inv_remap.values()
         )
 
-        self.things = get_things()
-        self.stuff = get_stuff()
+        self.things = list(data["things"].values())
+        self.stuff = list(data["stuff"].values())
         self.all_classes = self.things + self.stuff
 
     def update(self, sem_preds, ins_preds, inputs):
@@ -139,32 +139,3 @@ class PanopticKitti4DEvaluator:
         print("\t|\t".join([str(x) for x in self.evaluator.pan_fn]))
 
 
-def get_things():
-    things = [
-        "car",
-        "bicycle",
-        "motorcycle",
-        "truck",
-        "other-vehicle",
-        "person",
-        "bicyclist",
-        "motorcyclist",
-    ]
-    return things
-
-
-def get_stuff():
-    stuff = [
-        "road",
-        "parking",
-        "sidewalk",
-        "other-ground",
-        "building",
-        "fence",
-        "vegetation",
-        "trunk",
-        "terrain",
-        "pole",
-        "traffic-sign",
-    ]
-    return stuff

@@ -1,0 +1,251 @@
+# This file is covered by the LICENSE file in the root of this project.
+labels:
+  0:  "unlabeled"
+  1:  "wall"
+  2:  "floor"
+  3:  "cabinet"
+  4:  "bed"
+  5:  "chair"
+  6:  "sofa"
+  7:  "table"
+  8:  "door"
+  9:  "window"
+  10: "counter"
+  11: "shelf"
+  12: "curtain"
+  13: "pillow"
+  14: "clothes"
+  15: "ceiling"
+  16: "fridge"
+  17: "tv"
+  18: "towel"
+  19: "plant"
+  20: "box"
+  21: "nightstand"
+  22: "toilet"
+  23: "sink"
+  24: "lamp"
+  25: "bathtub"
+  26: "object"
+  27: "blanket"
+color_map: #bgr
+  0: [0, 0, 0]        # black
+  1: [232, 198, 174]  # wall
+  2: [137, 223, 151]  # floor
+  3: [255, 137, 24]   # cabinet
+  4: [120, 188, 255]  # bed
+  5: [35, 189, 188]   # chair
+  6: [74, 86, 140]    # sofa
+  7: [151, 153, 255]  # table
+  8: [100, 120, 205]  # door
+  9: [213, 176, 196]  # window
+  10: [2, 190, 23]    # counter
+  11: [0, 255, 208]   # shelf
+  12: [141, 219, 218] # curtain
+  13: [49, 103, 200]  # pillow
+  14: [177, 102, 175] # clothes
+  15: [103, 174, 202] # ceiling
+  16: [14, 127, 254]  # fridge
+  17: [1, 219, 247]   # tv
+  18: [151, 197, 108] # towel
+  19: [45, 160, 43]   # plant
+  20: [103, 174, 202] # box
+  21: [147, 161, 68]  # nightstand
+  22: [168, 136, 112] # toilet
+  23: [77, 118, 152]  # sink
+  24: [93, 187, 161]  # lamp
+  25: [196, 119, 227] # bathtub
+  26: [195, 200, 207] # object
+  27: [229, 218, 158] # blanket
+content: # as a ratio with the total number of points
+  0: 0.018889854628292943
+  1: 0.0002937197336781505
+  10: 0.040818519255974316
+  11: 0.00016609538710764618
+  13: 2.7879693665067774e-05
+  15: 0.00039838616015114444
+  16: 0.0
+  18: 0.0020633612104619787
+  20: 0.0016218197275284021
+  30: 0.00017698551338515307
+  31: 1.1065903904919655e-08
+  32: 5.532951952459828e-09
+  40: 0.1987493871255525
+  44: 0.014717169549888214
+  48: 0.14392298360372
+  49: 0.0039048553037472045
+  50: 0.1326861944777486
+  51: 0.0723592229456223
+  52: 0.002395131480328884
+  60: 4.7084144280367186e-05
+  70: 0.26681502148037506
+  71: 0.006035012012626033
+  72: 0.07814222006271769
+  80: 0.002855498193863172
+  81: 0.0006155958086189918
+  99: 0.009923127583046915
+  252: 0.001789309418528068
+  253: 0.00012709999297008662
+  254: 0.00016059776092534436
+  255: 3.745553104802113e-05
+  256: 0.0
+  257: 0.00011351574470342043
+  258: 0.00010157861367183268
+  259: 4.3840131989471124e-05
+# classes that are indistinguishable from single scan or inconsistent in
+# ground truth are mapped to their closest equivalent
+learning_map:
+  0:  0
+  1:  1
+  2:  2
+  3:  3
+  4:  4
+  5:  5
+  6:  6
+  7:  7
+  8:  8
+  9:  9
+  10: 10
+  11: 11
+  12: 12
+  13: 13
+  14: 14
+  15: 15
+  16: 16
+  17: 17
+  18: 18
+  19: 19
+  20: 20
+  21: 21
+  22: 22
+  23: 23
+  24: 24
+  25: 25
+  26: 0  #map object to unknown 
+  27: 27
+
+learning_map_inv: # inverse of previous map
+  0:  0
+  1:  1
+  2:  2
+  3:  3
+  4:  4
+  5:  5
+  6:  6
+  7:  7
+  8:  8
+  9:  9
+  10: 10
+  11: 11
+  12: 12
+  13: 13
+  14: 14
+  15: 15
+  16: 16
+  17: 17
+  18: 18
+  19: 19
+  20: 20
+  21: 21
+  22: 22
+  23: 23
+  24: 24
+  25: 25
+  27: 27
+
+
+learning_ignore:
+  0: True   # ignore unlabeled
+  1: False  # don't ignore any labeled classes
+  2: False
+  3: False
+  4: False
+  5: False
+  6: False
+  7: False
+  8: False
+  9: False
+  10: False
+  11: False
+  12: False
+  13: False
+  14: False
+  15: False
+  16: False
+  17: False
+  18: False
+  19: False
+  20: False
+  21: False
+  22: False
+  23: False
+  24: False
+  25: False
+  26: False
+  27: False 
+
+
+color_map_learning : {
+  0: [0, 0, 0],        # black
+  1: [232, 198, 174],  # wall
+  2: [137, 223, 151],  # floor
+  3: [255, 137, 24],   # cabinet
+  4: [120, 188, 255],  # bed
+  5: [35, 189, 188],   # chair
+  6: [74, 86, 140],    # sofa
+  7: [151, 153, 255],  # table
+  8: [100, 120, 205],  # door
+  9: [213, 176, 196],  # window
+  10: [2, 190, 23],    # counter
+  11: [0, 255, 208],   # shelf
+  12: [141, 219, 218], # curtain
+  13: [49, 103, 200],  # pillow
+  14: [177, 102, 175], # clothes
+  15: [103, 174, 202], # ceiling
+  16: [14, 127, 254],  # fridge
+  17: [1, 219, 247],   # tv
+  18: [151, 197, 108], # towel
+  19: [45, 160, 43],   # plant
+  20: [103, 174, 202], # box
+  21: [147, 161, 68],  # nightstand
+  22: [168, 136, 112], # toilet
+  23: [77, 118, 152],  # sink
+  24: [93, 187, 161],  # lamp
+  25: [196, 119, 227], # bathtub
+  27: [229, 218, 158], # blanket
+}
+
+split: "/home/groups/iarmeni/easteine/3RScan/3RScan.json"
+
+things : {
+    3: "cabinet",
+    4: "bed", 
+    5: "chair",
+    6: "sofa",
+    7: "table",
+    8: "door",
+    10: "counter",
+    11: "shelf",
+    13: "pillow",
+    14: "clothes",
+    16: "fridge",
+    17: "tv",
+    18: "towel",
+    19: "plant",
+    20: "box",
+    21: "nightstand",
+    22: "toilet",
+    23: "sink",
+    24: "lamp",
+    25: "bathtub",
+    27: "blanket",
+}
+
+stuff : {
+    1: "wall",
+    2: "floor",
+    9: "window",
+    12: "curtain",
+    15: "ceiling"
+}
+

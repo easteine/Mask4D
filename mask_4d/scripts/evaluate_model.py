@@ -20,7 +20,7 @@ def getDir(obj):
 def main(w, save_testset):
     seed_everything(42, workers=True)
     model_cfg = edict(
-        yaml.safe_load(open(join(getDir(__file__), "../config/model.yaml")))
+        yaml.safe_load(open(join(getDir(__file__), "../config/model_3RScan.yaml")))
     )
     backbone_cfg = edict(
         yaml.safe_load(open(join(getDir(__file__), "../config/backbone.yaml")))

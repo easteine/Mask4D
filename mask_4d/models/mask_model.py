@@ -9,8 +9,8 @@ from mask_4d.models.decoder import MaskedTransformerDecoder
 from mask_4d.models.loss import MaskLoss, SemLoss, WrongLoss
 from mask_4d.models.matcher import HungarianMatcher
 from mask_4d.models.positional_encoder import PositionalEncoder
-from mask_4d.utils.evaluate_4dpanoptic import PanopticKitti4DEvaluator
-from mask_4d.utils.evaluate_panoptic import PanopticKittiEvaluator
+from mask_4d.utils.evaluate_4dpanoptic import Panoptic4DEvaluator
+from mask_4d.utils.evaluate_panoptic import PanopticEvaluator
 from mask_4d.utils.instances import Tracks
 from mask_4d.utils.kalman_filter import KalmanBoxTracker
 from pytorch_lightning.core.lightning import LightningModule
@@ -23,17 +23,17 @@ class Mask4D(LightningModule):
         self.cfg = hparams
         self.n_q = hparams.DECODER.NUM_QUERIES
 
-        self.backbone = SphericalEncoderDecoder(hparams.BACKBONE, hparams.KITTI)
+        self.backbone = SphericalEncoderDecoder(hparams.BACKBONE, hparams.DATASET)
         self.decoder = MaskedTransformerDecoder(
-            hparams.DECODER, hparams.BACKBONE, hparams.KITTI
+            hparams.DECODER, hparams.BACKBONE, hparams.DATASET
         )
 
-        self.mask_loss = MaskLoss(hparams.LOSS, hparams.KITTI)
-        self.wrong_loss = WrongLoss(hparams.LOSS, hparams.KITTI)
+        self.mask_loss = MaskLoss(hparams.LOSS, hparams.DATASET)
+        self.wrong_loss = WrongLoss(hparams.LOSS, hparams.DATASET)
         self.sem_loss = SemLoss(hparams.LOSS.SEM.WEIGHTS)
 
-        self.evaluator = PanopticKittiEvaluator(hparams.KITTI)
-        self.evaluator4d = PanopticKitti4DEvaluator(hparams.KITTI)
+        self.evaluator = PanopticEvaluator(hparams.DATASET)
+        self.evaluator4d = Panoptic4DEvaluator(hparams.DATASET)
 
         self.matcher = HungarianMatcher(
             hparams.LOSS.LOSS_WEIGHTS, hparams.LOSS.NUM_POINTS
@@ -48,7 +48,7 @@ class Mask4D(LightningModule):
         self.last_ins_id = 1
         self.last_pose = np.eye(4)
         self.trackers = {}
-        self.min_mask_pts = hparams.KITTI.MIN_POINTS
+        self.min_mask_pts = hparams.DATASET.MIN_POINTS
 
     def forward(self, x, track_ins):
         feats, coors, logits = self.backbone(x)
@@ -216,7 +216,7 @@ class Mask4D(LightningModule):
         mask_cls = outputs["pred_logits"][0]
         mask_pred = outputs["pred_masks"][0].sigmoid()
         things_ids = torch.tensor(self.trainer.datamodule.things_ids).cuda()
-        num_classes = self.cfg.KITTI.NUM_CLASSES
+        num_classes = self.cfg.DATASET.NUM_CLASSES
 
         scores, labels = mask_cls.max(-1)
         keep = labels.ne(num_classes) & torch.isin(labels, things_ids)

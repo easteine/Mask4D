@@ -30,10 +30,11 @@ LOSS:
     SEM:
         WEIGHTS: [2,6] #Ce, Lovasz
 
-DATASET: #KITTI
-    PATH: /oak/stanford/groups/iarmeni/easteine/kitti/
-    CONFIG: datasets/semantic-kitti.yaml
-    NUM_CLASSES: 20
+DATASET: #3RScan
+    PATH: /oak/stanford/groups/iarmeni/easteine/3RScan/
+    CONFIG: datasets/semantic-3RScan.yaml
+    META_FILE: "/path/to/3RScan.json"
+    NUM_CLASSES: 28
     IGNORE_LABEL: 0
     MIN_POINTS: 10
     SPACE: # coord limits
