@@ -6,7 +6,8 @@ import click
 import torch
 import yaml
 from easydict import EasyDict as edict
-from mask_4d.datasets.kitti_dataset import SemanticDatasetModule
+from mask_4d.datasets.kitti_dataset import KittiSemanticDatasetModule
+from mask_4d.datasets.Rscan_dataset import RScanSemanticDatasetModule
 from mask_4d.models.mask_model import Mask4D
 from pytorch_lightning import Trainer
 from pytorch_lightning import loggers as pl_loggers

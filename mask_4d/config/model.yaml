@@ -31,6 +31,7 @@ LOSS:
         WEIGHTS: [2,6] #Ce, Lovasz
 
 DATASET: #KITTI
+    NAME: KITTI
     PATH: /oak/stanford/groups/iarmeni/easteine/kitti/
     CONFIG: datasets/semantic-kitti.yaml
     NUM_CLASSES: 20

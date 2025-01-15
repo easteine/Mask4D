@@ -1,11 +1,13 @@
 click==8.1.7
 easydict==1.10
 filterpy==1.4.5
-numpy==1.24.4
 pytorch_lightning==1.5.9
 PyYAML==6.0.1
-scipy
-spconv-cu114==2.1.21
-cumm-cu114==0.2.8
+scipy==1.10.1
+spconv-cu114==2.3.8
+cumm-cu114==0.7.11
 timm==0.6.13
 torch_scatter==2.0.5
+torchmetrics==0.11.4
+pyfile
+torch_geometric==1.7.2

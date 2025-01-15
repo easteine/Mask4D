@@ -115,14 +115,14 @@ learning_map:
   17: 17
   18: 18
   19: 19
-  20: 20
-  21: 21
-  22: 22
-  23: 23
-  24: 24
-  25: 25
+  20: 0
+  21: 0
+  22: 0
+  23: 0
+  24: 0
+  25: 0
   26: 0  #map object to unknown 
-  27: 27
+  27: 0
 
 learning_map_inv: # inverse of previous map
   0:  0
@@ -145,13 +145,7 @@ learning_map_inv: # inverse of previous map
   17: 17
   18: 18
   19: 19
-  20: 20
-  21: 21
-  22: 22
-  23: 23
-  24: 24
-  25: 25
-  27: 27
+
 
 
 learning_ignore:
@@ -175,14 +169,6 @@ learning_ignore:
   17: False
   18: False
   19: False
-  20: False
-  21: False
-  22: False
-  23: False
-  24: False
-  25: False
-  26: False
-  27: False 
 
 
 color_map_learning : {
@@ -206,13 +192,6 @@ color_map_learning : {
   17: [1, 219, 247],   # tv
   18: [151, 197, 108], # towel
   19: [45, 160, 43],   # plant
-  20: [103, 174, 202], # box
-  21: [147, 161, 68],  # nightstand
-  22: [168, 136, 112], # toilet
-  23: [77, 118, 152],  # sink
-  24: [93, 187, 161],  # lamp
-  25: [196, 119, 227], # bathtub
-  27: [229, 218, 158], # blanket
 }
 
 split: "/home/groups/iarmeni/easteine/3RScan/3RScan.json"
@@ -232,13 +211,6 @@ things : {
     17: "tv",
     18: "towel",
     19: "plant",
-    20: "box",
-    21: "nightstand",
-    22: "toilet",
-    23: "sink",
-    24: "lamp",
-    25: "bathtub",
-    27: "blanket",
 }
 
 stuff : {

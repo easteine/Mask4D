@@ -5,7 +5,8 @@ import click
 import torch
 import yaml
 from easydict import EasyDict as edict
-from mask_4d.datasets.kitti_dataset import SemanticDatasetModule
+from mask_4d.datasets.kitti_dataset import KittiSemanticDatasetModule
+from mask_4d.datasets.RScan_dataset import RScanSemanticDatasetModule
 from mask_4d.models.mask_model import Mask4D
 from pytorch_lightning import Trainer, seed_everything
 
@@ -20,7 +21,7 @@ def getDir(obj):
 def main(w, save_testset):
     seed_everything(42, workers=True)
     model_cfg = edict(
-        yaml.safe_load(open(join(getDir(__file__), "../config/model_3RScan.yaml")))
+        yaml.safe_load(open(join(getDir(__file__), "../config/model.yaml")))
     )
     backbone_cfg = edict(
         yaml.safe_load(open(join(getDir(__file__), "../config/backbone.yaml")))
@@ -36,7 +37,8 @@ def main(w, save_testset):
         print(f"Saving test set predictions in directory {results_dir}")
         cfg.RESULTS_DIR = results_dir
 
-    data = SemanticDatasetModule(cfg)
+    
+    data = load_dataset(cfg)
     model = Mask4D(cfg)
     w = torch.load(w, map_location="cpu")
     model.load_state_dict(w["state_dict"])
@@ -50,6 +52,15 @@ def main(w, save_testset):
     model.evaluator.print_results()
     print("#############################################################")
     model.evaluator4d.print_results()
+
+
+def load_dataset(cfg):
+    if cfg.DATASET.NAME == 'KITTI':
+        return KittiSemanticDatasetModule(cfg)
+    elif cfg.DATASET.NAME == '3RSCAN':
+        return RScanSemanticDatasetModule(cfg)
+    else:
+        raise ValueError(f'Unknown dataset {config["dataset"]}') 
 
 
 def create_dirs():

@@ -7,9 +7,10 @@ import yaml
 from mask_4d.utils.data_util import data_prepare
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset
+from plyfile import PlyData
 
 
-class KittiSemanticDatasetModule(LightningDataModule):
+class RScanSemanticDatasetModule(LightningDataModule):
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
@@ -20,12 +21,21 @@ class KittiSemanticDatasetModule(LightningDataModule):
         pass
 
     def setup(self, stage=None):
+
+        with open(self.cfg.DATASET.META_FILE, 'r') as f:
+            metadata = json.load(f)
+            
+        train_scans = [scan for scan in metadata if scan['type'] == 'train']
+        val_scans = [scan for scan in metadata if scan['type'] == 'validation']
+        test_scans = [scan for scan in metadata if scan['type'] == 'test']
+
+            
         train_set = SemanticDataset(
-            os.path.join(self.cfg.DATASET.PATH, "sequences"),
-            self.cfg.DATASET.CONFIG,
+            self.cfg.DATASET.PATH,
+            train_scans,
+            self.cfg.KITTI.CONFIG,
             split="train",
         )
-
         
         train_mask_set = MaskSemanticDataset(
             dataset=train_set,
@@ -36,6 +46,7 @@ class KittiSemanticDatasetModule(LightningDataModule):
             voxel_size=self.cfg.BACKBONE.VOXEL_SIZE,
             voxel_max=self.cfg.BACKBONE.VOXEL_MAX,
         )
+        
         self.train_seq_mask = SequenceMaskDataset(
             train_mask_set,
             n_scans=self.cfg.TRAIN.N_SCANS,
@@ -43,10 +54,12 @@ class KittiSemanticDatasetModule(LightningDataModule):
         )
 
         val_set = SemanticDataset(
-            os.path.join(self.cfg.DATASET.PATH, "sequences"),
-            self.cfg.DATASET.CONFIG,
-            split="valid",
+            self.cfg.DATASET.PATH,
+            val_scans, 
+            self.cfg.KITTI.CONFIG,
+            split="valid"
         )
+        
         self.val_mask_set = MaskSemanticDataset(
             dataset=val_set,
             split="valid",
@@ -58,10 +71,12 @@ class KittiSemanticDatasetModule(LightningDataModule):
         )
 
         test_set = SemanticDataset(
-            os.path.join(self.cfg.DATASET.PATH, "sequences"),
-            self.cfg.DATASET.CONFIG,
-            split="test",
+            self.cfg.DATASET.PATH,
+            test_scans,
+            self.cfg.KITTI.CONFIG,
+            split="test"
         )
+        
         self.test_mask_set = MaskSemanticDataset(
             dataset=test_set,
             split="test",
@@ -72,8 +87,8 @@ class KittiSemanticDatasetModule(LightningDataModule):
             voxel_max=self.cfg.BACKBONE.VOXEL_MAX,
         )
 
-        self.things_ids = train_set.things_ids
-        self.color_map = train_set.color_map
+        # self.things_ids = train_set.things_ids
+        # self.color_map = train_set.color_map
 
     def train_dataloader(self):
         dataset = self.train_seq_mask
@@ -125,67 +140,81 @@ class KittiSemanticDatasetModule(LightningDataModule):
 
 
 class SemanticDataset(Dataset):
-    def __init__(self, data_path, cfg_path, split="train"):
+    def __init__(self, data_path, scan_list, cfg_path, split="train"):
+        self.data_path = data_path
+        self.scan_list = scan_list
+        self.split = split
+
+
         yaml_path = cfg_path
         with open(yaml_path, "r") as stream:
             semyaml = yaml.safe_load(stream)
-
-        self.things = semyaml['things']
-        self.stuff = semyaml['stuff']
-
-        self.things_ids = list(self.things.keys())
 
         self.color_map = semyaml["color_map_learning"]
         self.labels = semyaml["labels"]
         self.learning_map = semyaml["learning_map"]
         self.inv_learning_map = semyaml["learning_map_inv"]
-        self.split = split
-        split = semyaml["split"][self.split]
 
-        self.im_idx = []
-        pose_files = []
-        calib_files = []
-        for i_folder in split:
-            self.im_idx += absoluteFilePaths(
-                os.path.join(data_path, str(i_folder).zfill(2), "velodyne")
-            )
-            pose_files.append(
-                os.path.join(data_path, str(i_folder).zfill(2), "poses.txt")
-            )
-            calib_files.append(
-                os.path.join(data_path, str(i_folder).zfill(2), "calib.txt")
-            )
 
-        self.im_idx.sort()
-        self.poses, self.n_scans = load_poses(pose_files, calib_files)
+        self.things = semyaml['things']
+        self.stuff = semyaml['stuff']
+        self.things_ids = list(self.things.keys())
+
+        # Build list of all scan paths
+        self.scan_paths = []
+        self.reference_paths = []
+        for scan in scan_list:
+            ref_scan = scan['reference']
+            ref_path = os.path.join(data_path, ref_scan)
+            self.reference_paths.append(ref_path)
+            
+            # Add paths for each rescan
+            for rescan in scan['scans']:
+                rescan_path = os.path.join(data_path, rescan['reference'])
+                self.scan_paths.append({
+                    'path': rescan_path,
+                    'reference': ref_path,
+                    'transform': np.array(rescan['transform']).reshape(4,4) if 'transform' in rescan else None,
+                })
+
 
     def __len__(self):
         return len(self.im_idx)
 
     def __getitem__(self, index):
-        fname = self.im_idx[index]
-        pose = self.poses[index]
-        points = np.fromfile(self.im_idx[index], dtype=np.float32).reshape((-1, 4))
-        xyz = points[:, :3]
-        intensity = points[:, 3]
-        if len(intensity.shape) == 2:
-            intensity = np.squeeze(intensity)
+        scan_data = self.scan_paths[index]
+        scan_path = scan_data['path']
+        
+        # Load point cloud and instance labels
+        pc_path = os.path.join(scan_path, 'pointcloud/pointcloud.scan.ply')
+        inst_path = os.path.join(scan_path, 'pointcloud/pointcloud.instances.ply')
+
+        xyz, colors = read_ply(str(pc_path))
+        intensity = np.asarray(colors)[:, 0]
+
+        # Extract instance and semantic labels
+        # Assuming instance labels are stored in vertex labels
         if self.split == "test":
-            annotated_data = np.expand_dims(
-                np.zeros_like(points[:, 0], dtype=int), axis=1
-            )
-            sem_labels = annotated_data
-            ins_labels = annotated_data
+            sem_labels = np.zeros((xyz.shape[0], 1), dtype=int)
+            ins_labels = np.zeros((xyz.shape[0], 1), dtype=int)
         else:
-            annotated_data = np.fromfile(
-                self.im_idx[index].replace("velodyne", "labels")[:-3] + "label",
-                dtype=np.int32,
-            ).reshape((-1, 1))
-            sem_labels = annotated_data & 0xFFFF
-            ins_labels = annotated_data >> 16
+            inst_data = PlyData.read(str(inst_path))
+            vertex_data = inst_data['vertex']
+
+            # Extract RIO27 semantic labels and instance IDs
+            sem_labels = vertex_data['RIO27'].reshape(-1, 1)
             sem_labels = np.vectorize(self.learning_map.__getitem__)(sem_labels)
 
-        return (xyz, sem_labels, ins_labels, intensity, fname, pose)
+            ins_labels = vertex_data['objectId'].reshape(-1, 1)
+
+            # rgb = np.column_stack([vertex_data[x] for x in ['red', 'green', 'blue']])
+
+            # Apply transformation if available
+            if scan_data['transform'] is not None:
+                xyz = (scan_data['transform'][:3, :3] @ xyz.T + 
+                      scan_data['transform'][:3, 3:]).T
+
+        return (xyz, sem_labels, ins_labels, intensity, scan_path, scan_data['transform'])
 
 
 class MaskSemanticDataset(Dataset):
@@ -204,31 +233,17 @@ class MaskSemanticDataset(Dataset):
         self.split = split
         self.min_points = min_pts
         self.th_ids = dataset.things_ids
-        self.xlim = space[0]
-        self.ylim = space[1]
-        self.zlim = space[2]
         self.voxel_size = np.array(voxel_size)
         self.voxel_max = voxel_max
+        # no spatial bounds for 3RScan since they are contained scans
 
+        
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, index):
         data = self.dataset[index]
         xyz, sem_labels, ins_labels, intensity, fname, pose = data
-        full_xyz = xyz.shape[0]
-        keep_xyz = np.argwhere(
-            (self.xlim[0] < xyz[:, 0])
-            & (xyz[:, 0] < self.xlim[1])
-            & (self.ylim[0] < xyz[:, 1])
-            & (xyz[:, 1] < self.ylim[1])
-            & (self.zlim[0] < xyz[:, 2])
-            & (xyz[:, 2] < self.zlim[1])
-        )[:, 0]
-        xyz = xyz[keep_xyz]
-        sem_labels = sem_labels[keep_xyz]
-        ins_labels = ins_labels[keep_xyz]
-        intensity = intensity[keep_xyz]
 
         feats = np.concatenate((xyz, np.expand_dims(intensity, axis=1)), axis=1)
 
@@ -262,8 +277,6 @@ class MaskSemanticDataset(Dataset):
                 torch.tensor([]),
                 fname,
                 pose,
-                keep_xyz,
-                full_xyz,
                 sp_coords,
                 sp_xyz,
                 sp_feats,
@@ -331,8 +344,6 @@ class MaskSemanticDataset(Dataset):
             masks_ids,
             fname,
             pose,
-            keep_xyz,
-            full_xyz,
             sp_coords,
             sp_xyz,
             sp_feats,
@@ -394,8 +405,6 @@ class SphericalBatchCollation:
             "masks_ids",
             "fname",
             "pose",
-            "keep_xyz",
-            "full_xyz",
             "sp_coord",
             "sp_xyz",
             "sp_feat",
@@ -418,8 +427,6 @@ class SphericalSequenceCollation:
             "masks_ids",
             "fname",
             "pose",
-            "keep_xyz",
-            "full_xyz",
             "sp_coord",
             "sp_xyz",
             "sp_feat",
@@ -432,62 +439,24 @@ class SphericalSequenceCollation:
         return {self.keys[i]: list(x) for i, x in enumerate(zip(*_data))}
 
 
-def absoluteFilePaths(directory):
-    for dirpath, _, filenames in os.walk(directory):
-        for f in filenames:
-            yield os.path.abspath(os.path.join(dirpath, f))
-
-
-def absoluteDirPath(directory):
-    return os.path.abspath(directory)
-
-
-def parse_calibration(filename):
-    calib = {}
-    calib_file = open(filename)
-    for line in calib_file:
-        key, content = line.strip().split(":")
-        values = [float(v) for v in content.strip().split()]
-        pose = np.zeros((4, 4))
-        pose[0, 0:4] = values[0:4]
-        pose[1, 0:4] = values[4:8]
-        pose[2, 0:4] = values[8:12]
-        pose[3, 3] = 1.0
-        calib[key] = pose
-    calib_file.close()
-    return calib
-
-
-def parse_poses(filename, calibration):
-    file = open(filename)
-    poses = []
-    Tr = calibration["Tr"]
-    Tr_inv = np.linalg.inv(Tr)
-    for line in file:
-        values = [float(v) for v in line.strip().split()]
-        pose = np.zeros((4, 4))
-        pose[0, 0:4] = values[0:4]
-        pose[1, 0:4] = values[4:8]
-        pose[2, 0:4] = values[8:12]
-        pose[3, 3] = 1.0
-        poses.append(np.matmul(Tr_inv, np.matmul(pose, Tr)))
-    return poses
-
-
-def load_poses(pose_files, calib_files):
-    poses = []
-    n_scans = {}
-    # go through every file and get all poses
-    # add them to match im_idx
-    for i in range(len(pose_files)):
-        calib = parse_calibration(calib_files[i])
-        seq_poses_f64 = parse_poses(pose_files[i], calib)
-        seq_poses = [pose.astype(np.float32) for pose in seq_poses_f64]
-        poses += seq_poses
-        seq = pose_files[i].split("/")[-2]
-        n_scans[seq] = len(seq_poses)
-    return poses, n_scans
-
-
-def getDir(obj):
-    return os.path.dirname(os.path.abspath(obj))
+def read_ply(file_path):
+    ply_data = PlyData.read(file_path)
+    
+    # Extract vertex data
+    vertex = ply_data['vertex']
+    
+    # Get x, y, z coordinates
+    x = vertex['x']
+    y = vertex['y']
+    z = vertex['z']
+    xyz = np.column_stack((x, y, z))
+    
+    # Get color data if available
+    colors = None
+    if 'red' in vertex.dtype.names:
+        red = vertex['red']
+        green = vertex['green']
+        blue = vertex['blue']
+        colors = np.column_stack((red, green, blue))
+    
+    return xyz, colors
